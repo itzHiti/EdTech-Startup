@@ -1,34 +1,8 @@
 from datetime import datetime
+from enum import Enum
 from typing import Optional
-
-from pydantic import BaseModel, EmailStr, Field
-
-
-# ── Auth ──────────────────────────────────────────────────────────────────────
-
-class GoogleLoginRequest(BaseModel):
-    id_token: str
-
-
-class EmailPasswordSignupRequest(BaseModel):
-    email: EmailStr
-    password: str = Field(min_length=8)
-    full_name: str
-
-
-class EmailPasswordLoginRequest(BaseModel):
-    email: EmailStr
-    password: str
-
-
-class TokenResponse(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-
-
-class RefreshRequest(BaseModel):
-    refresh_token: str
+from datetime import datetime
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 # ── User ──────────────────────────────────────────────────────────────────────
@@ -137,24 +111,68 @@ class QuizResultOut(BaseModel):
 
 # ── Prompt ────────────────────────────────────────────────────────────────────
 
+class PromptType(str, Enum):
+    image = "image"
+    video = "video"
+    text = "text"
+
+
 class PromptBlockIn(BaseModel):
-    type: str  # subject, location, style, camera, action, or custom
+    type: str   # defined freely by frontend: subject, style, tone, etc.
     value: str
+
+    @field_validator("type", "value")
+    @classmethod
+    def not_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Block type and value must not be empty")
+        return v.strip()
 
 
 class PromptCreate(BaseModel):
+    prompt_type: PromptType
     blocks: list[PromptBlockIn]
+
+    @field_validator("blocks")
+    @classmethod
+    def blocks_not_empty(cls, v: list) -> list:
+        if not v:
+            raise ValueError("At least one block is required")
+        return v
+
+
+class PromptUpdate(BaseModel):
+    """All fields optional — only provided fields are updated."""
+    blocks: list[PromptBlockIn] | None = None
+    name: str | None = None
+
+    @field_validator("name")
+    @classmethod
+    def name_not_empty(cls, v: str | None) -> str | None:
+        if v is not None and not v.strip():
+            raise ValueError("Name must not be empty")
+        return v.strip() if v else v
+
+    @field_validator("blocks")
+    @classmethod
+    def blocks_not_empty(cls, v: list | None) -> list | None:
+        if v is not None and not v:
+            raise ValueError("Blocks list must not be empty if provided")
+        return v
 
 
 class PromptOut(BaseModel):
     id: int
     user_id: int
     name: str
+    prompt_type: PromptType
     blocks: list[dict]
     final_prompt: str
     created_at: datetime
+    updated_at: datetime | None
 
     model_config = {"from_attributes": True}
+
 
 
 # ── Admin ─────────────────────────────────────────────────────────────────────

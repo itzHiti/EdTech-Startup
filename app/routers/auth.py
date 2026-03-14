@@ -13,7 +13,7 @@ from app.auth import (
 from app.core.config import get_settings
 from app.database.database import get_db
 from app.models.models import User
-from app.schemas.schemas import (
+from app.schemas.auth import (
     GoogleLoginRequest,
     EmailPasswordSignupRequest,
     EmailPasswordLoginRequest,

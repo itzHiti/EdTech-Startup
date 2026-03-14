@@ -11,3 +11,4 @@ pydantic-settings==2.7.1
 pydantic
 passlib[bcrypt]==1.7.4
 email-validator==2.2.0
+uliweb-alembic

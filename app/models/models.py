@@ -89,10 +89,22 @@ class Prompt(Base):
     __tablename__ = "prompts"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,      # we filter by user_id often
+    )
     name = Column(String(100), nullable=False, default="Untitled")
-    blocks = Column(JSON, nullable=False)  # list of {type, value}
+    prompt_type = Column(
+        String(20),
+        nullable=False,
+        default="image",
+        index=True,      # we filter by type in list endpoint
+    )
+    blocks = Column(JSON, nullable=False)
     final_prompt = Column(Text, nullable=False, default="")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=True, onupdate=func.now())
 
     user = relationship("User", back_populates="prompts")

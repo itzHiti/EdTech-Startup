@@ -1,7 +1,4 @@
 from app.schemas.schemas import (  # noqa: F401
-    GoogleLoginRequest,
-    TokenResponse,
-    RefreshRequest,
     UserOut,
     UserUpdate,
     CourseCreate,
@@ -18,4 +15,10 @@ from app.schemas.schemas import (  # noqa: F401
     PromptCreate,
     PromptOut,
     AdminUserOut,
+)
+
+from app.schemas.auth import (
+    GoogleLoginRequest,
+    TokenResponse,
+    RefreshRequest,
 )

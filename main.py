@@ -58,4 +58,5 @@ app.include_router(admin_router)
 
 @app.get("/", tags=["Health"])
 async def root():
-    return {"message": "EdTech Platform API is running", "docs": "/docs"}
+    return {"message": "EdTech Platform API is running", "to access docs go here": "/docs"}
+
