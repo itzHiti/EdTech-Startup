@@ -13,7 +13,7 @@ from app.routers.courses import router as courses_router
 from app.routers.quizzes import router as quizzes_router
 from app.routers.prompts import router as prompts_router
 from app.internal.admin import router as admin_router
-
+import multiprocessing
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -56,7 +56,7 @@ app.include_router(prompts_router)
 app.include_router(admin_router)
 
 
-@app.get("/", tags=["Health"])
+@app.get("/", tags=["/health"])
 async def root():
-    return {"message": "EdTech Platform API is running", "to access docs go here": "/docs"}
-
+    print("Number of cpu : ", multiprocessing.cpu_count())
+    return {"message": "the server is running", "docs": "/docs"}

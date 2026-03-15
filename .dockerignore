@@ -1,0 +1,35 @@
+# Virtual environments and local Python
+.venv
+venv
+env
+__pycache__
+*.py[cod]
+*.pyo
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+coverage.xml
+
+# Git and IDE
+.git
+.gitignore
+.idea
+.vscode
+
+# Secrets and local config (use env vars or mounts in production)
+.env
+.env.*
+*.env
+
+# Tests and docs (not needed to run the app in the container)
+tests
+docs
+*.md
+!README.md
+
+# Build and packaging
+build
+dist
+*.egg-info
+.editorconfig
