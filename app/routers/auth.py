@@ -27,6 +27,20 @@ settings = get_settings()
 GOOGLE_TOKENINFO_URL = "https://oauth2.googleapis.com/tokeninfo"
 
 
+async def _verify_google_token(id_token: str) -> dict:
+    async with httpx.AsyncClient() as http:
+        resp = await http.get(GOOGLE_TOKENINFO_URL, params={"id_token": id_token})
+
+    if resp.status_code != 200:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Google token")
+
+    google_data = resp.json()
+    if google_data.get("aud") != settings.GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token audience mismatch")
+
+    return google_data
+
+
 @router.post("/google", response_model=TokenResponse)
 async def google_login(payload: GoogleLoginRequest, db: AsyncSession = Depends(get_db)):
     """Authenticate with a Google OAuth id_token.
@@ -34,28 +48,52 @@ async def google_login(payload: GoogleLoginRequest, db: AsyncSession = Depends(g
     The frontend obtains an id_token from Google Sign-In and sends it here.
     We verify it with Google, then create or fetch the local user and return JWTs.
     """
-    # Verify the id_token with Google
-    async with httpx.AsyncClient() as http:
-        resp = await http.get(GOOGLE_TOKENINFO_URL, params={"id_token": payload.id_token})
+    google_data = await _verify_google_token(payload.id_token)
 
-    if resp.status_code != 200:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Google token")
+    google_id = google_data["sub"]
 
-    google_data = resp.json()
+    # Login only for already-registered Google accounts.
+    result = await db.execute(select(User).where(User.google_id == google_id))
+    user = result.scalar_one_or_none()
 
-    # Validate audience matches our client id
-    if google_data.get("aud") != settings.GOOGLE_CLIENT_ID:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token audience mismatch")
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Google account is not registered. Please sign up with Google first.",
+        )
+
+    token_data = {"sub": str(user.id)}
+    return TokenResponse(
+        access_token=create_access_token(token_data),
+        refresh_token=create_refresh_token(token_data),
+    )
+
+
+@router.post("/google/signup", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+async def google_signup(payload: GoogleLoginRequest, db: AsyncSession = Depends(get_db)):
+    """Register with Google OAuth id_token.
+
+    Creates a local account bound to Google identity. If the Google identity is already
+    registered, the endpoint behaves idempotently and returns auth tokens.
+    """
+    google_data = await _verify_google_token(payload.id_token)
 
     google_id = google_data["sub"]
     email = google_data.get("email", "")
     full_name = google_data.get("name", "")
 
-    # Find or create user
     result = await db.execute(select(User).where(User.google_id == google_id))
     user = result.scalar_one_or_none()
 
     if user is None:
+        email_result = await db.execute(select(User).where(User.email == email))
+        existing_email_user = email_result.scalar_one_or_none()
+        if existing_email_user is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Email is already registered. Please sign in with your existing method.",
+            )
+
         user = User(email=email, full_name=full_name, google_id=google_id)
         db.add(user)
         await db.flush()

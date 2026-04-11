@@ -6,12 +6,98 @@ from app.auth import get_current_user
 from app.database.database import get_db
 from app.models.models import Lesson, Quiz, QuizResult, User
 from app.core.rate_limiter import gpt_rate_limiter
-from app.schemas import QuizOut, QuizSubmit, QuizResultOut
+from app.auth import require_admin
+from app.schemas import QuizOut, QuizSubmit, QuizResultOut, QuizUpdate
 from app.services.openai_service import generate_quiz
 
 router = APIRouter(tags=["Quizzes"])
 
 XP_PER_CORRECT = 100
+
+
+@router.get("/admin/lessons/{lesson_id}/quiz", response_model=QuizOut)
+async def admin_get_quiz(
+    lesson_id: int,
+    _admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    lesson = await db.get(Lesson, lesson_id)
+    if lesson is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lesson not found")
+
+    result = await db.execute(select(Quiz).where(Quiz.lesson_id == lesson_id))
+    quiz = result.scalar_one_or_none()
+    if quiz is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found for this lesson")
+
+    safe_questions = [
+        {"question": q["question"], "options": q["options"]}
+        for q in quiz.questions
+    ]
+
+    return QuizOut(
+        id=quiz.id,
+        lesson_id=quiz.lesson_id,
+        questions=safe_questions,
+        created_at=quiz.created_at,
+    )
+
+
+@router.put("/admin/lessons/{lesson_id}/quiz", response_model=QuizOut)
+async def admin_update_quiz(
+    lesson_id: int,
+    payload: QuizUpdate,
+    _admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    lesson = await db.get(Lesson, lesson_id)
+    if lesson is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lesson not found")
+
+    result = await db.execute(select(Quiz).where(Quiz.lesson_id == lesson_id))
+    quiz = result.scalar_one_or_none()
+
+    questions = [q.model_dump() for q in payload.questions]
+
+    if quiz is None:
+        quiz = Quiz(lesson_id=lesson_id, questions=questions)
+        db.add(quiz)
+    else:
+        quiz.questions = questions
+
+    await db.flush()
+    await db.refresh(quiz)
+
+    safe_questions = [
+        {"question": q["question"], "options": q["options"]}
+        for q in quiz.questions
+    ]
+
+    return QuizOut(
+        id=quiz.id,
+        lesson_id=quiz.lesson_id,
+        questions=safe_questions,
+        created_at=quiz.created_at,
+    )
+
+
+@router.delete("/admin/lessons/{lesson_id}/quiz")
+async def admin_delete_quiz(
+    lesson_id: int,
+    _admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    lesson = await db.get(Lesson, lesson_id)
+    if lesson is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lesson not found")
+
+    result = await db.execute(select(Quiz).where(Quiz.lesson_id == lesson_id))
+    quiz = result.scalar_one_or_none()
+    if quiz is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found for this lesson")
+
+    await db.delete(quiz)
+    return {"message": "Quiz deleted"}
 
 
 @router.get("/lessons/{lesson_id}/quiz", response_model=QuizOut)

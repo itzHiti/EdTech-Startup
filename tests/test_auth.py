@@ -97,3 +97,43 @@ async def test_login_invalid_password(client: AsyncClient):
         },
     )
     assert login_resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_google_login_requires_existing_google_account(client: AsyncClient, monkeypatch):
+    async def fake_verify_google_token(_id_token: str):
+        return {
+            "aud": "client-id",
+            "sub": f"google-{uuid.uuid4()}",
+            "email": f"g-{uuid.uuid4()}@example.com",
+            "name": "Google User",
+        }
+
+    monkeypatch.setattr("app.routers.auth._verify_google_token", fake_verify_google_token)
+
+    login_resp = await client.post("/auth/google", json={"id_token": "valid-token"})
+    assert login_resp.status_code == 404
+    assert "Please sign up with Google first" in login_resp.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_google_signup_then_google_login(client: AsyncClient, monkeypatch):
+    google_sub = f"google-{uuid.uuid4()}"
+
+    async def fake_verify_google_token(_id_token: str):
+        return {
+            "aud": "client-id",
+            "sub": google_sub,
+            "email": f"g-{uuid.uuid4()}@example.com",
+            "name": "Google User",
+        }
+
+    monkeypatch.setattr("app.routers.auth._verify_google_token", fake_verify_google_token)
+
+    signup_resp = await client.post("/auth/google/signup", json={"id_token": "valid-token"})
+    assert signup_resp.status_code == 201
+    assert "access_token" in signup_resp.json()
+
+    login_resp = await client.post("/auth/google", json={"id_token": "valid-token"})
+    assert login_resp.status_code == 200
+    assert "access_token" in login_resp.json()

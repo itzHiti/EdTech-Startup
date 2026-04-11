@@ -54,6 +54,11 @@ class LessonCreate(BaseModel):
     title: str
     content: str = ""
     youtube_url: Optional[str] = None
+    section_name: str = "General"
+    image_urls: list[str] = Field(default_factory=list)
+    task_text: str = ""
+    blocks: list[dict] = Field(default_factory=list)
+    mini_quiz: list[dict] = Field(default_factory=list)
     order_index: int = 0
 
 
@@ -61,6 +66,11 @@ class LessonUpdate(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
     youtube_url: Optional[str] = None
+    section_name: Optional[str] = None
+    image_urls: Optional[list[str]] = None
+    task_text: Optional[str] = None
+    blocks: Optional[list[dict]] = None
+    mini_quiz: Optional[list[dict]] = None
     order_index: Optional[int] = None
 
 
@@ -70,6 +80,11 @@ class LessonOut(BaseModel):
     title: str
     content: str
     youtube_url: Optional[str]
+    section_name: str
+    image_urls: list[str]
+    task_text: str
+    blocks: list[dict]
+    mini_quiz: list[dict]
     order_index: int
     created_at: datetime
 
@@ -94,6 +109,16 @@ class QuizOut(BaseModel):
 
 class QuizSubmit(BaseModel):
     answers: list[int]  # indices of chosen options, one per question
+
+
+class QuizQuestionIn(BaseModel):
+    question: str
+    options: list[str]
+    correct_index: int = 0
+
+
+class QuizUpdate(BaseModel):
+    questions: list[QuizQuestionIn]
 
 
 class QuizResultOut(BaseModel):
@@ -172,6 +197,34 @@ class PromptOut(BaseModel):
     updated_at: datetime | None
 
     model_config = {"from_attributes": True}
+
+
+# ── Image generation ─────────────────────────────────────────────────────────
+
+
+class GeneratedImageInput(BaseModel):
+    data: str
+    mime_type: str
+
+
+class ImageGenerationRequest(BaseModel):
+    model: str
+    prompt: str
+    aspect_ratio: str = "1:1"
+    quality: str = "1K"
+    images: list[GeneratedImageInput] = Field(default_factory=list)
+
+
+class GeneratedImageOut(BaseModel):
+    data: str
+    mime_type: str
+
+
+class ImageGenerationResponse(BaseModel):
+    model: str
+    prompt: str
+    images: list[GeneratedImageOut]
+    text: str | None = None
 
 
 
