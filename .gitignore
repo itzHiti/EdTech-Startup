@@ -37,3 +37,6 @@ coverage.xml
 # Logs
 *.log
 logs/
+
+config.py
+alembic.ini
