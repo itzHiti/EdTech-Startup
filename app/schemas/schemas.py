@@ -91,6 +91,17 @@ class LessonOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class LessonSummaryOut(BaseModel):
+    id: int
+    course_id: int
+    title: str
+    section_name: str
+    order_index: int
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 # ── Quiz ──────────────────────────────────────────────────────────────────────
 
 class QuestionOut(BaseModel):

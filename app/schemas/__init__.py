@@ -7,6 +7,7 @@ from app.schemas.schemas import (  # noqa: F401
     LessonCreate,
     LessonUpdate,
     LessonOut,
+    LessonSummaryOut,
     QuestionOut,
     QuizOut,
     QuizQuestionIn,
