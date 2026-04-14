@@ -13,6 +13,7 @@ from app.routers.courses import router as courses_router
 from app.routers.quizzes import router as quizzes_router
 from app.routers.prompts import router as prompts_router
 from app.routers.image_generation import router as image_generation_router
+from app.routers.audio_generation import router as audio_generation_router
 from app.internal.admin import router as admin_router
 import multiprocessing
 
@@ -70,6 +71,7 @@ app.include_router(courses_router)
 app.include_router(quizzes_router)
 app.include_router(prompts_router)
 app.include_router(image_generation_router)
+app.include_router(audio_generation_router)
 app.include_router(admin_router)
 
 

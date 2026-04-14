@@ -14,6 +14,7 @@ async def generate_image_route(payload: ImageGenerationRequest):
             prompt=payload.prompt,
             aspect_ratio=payload.aspect_ratio,
             quality=payload.quality,
+            api_key=payload.api_key,
             images=[image.model_dump() for image in payload.images],
         )
         return result

@@ -223,6 +223,7 @@ class ImageGenerationRequest(BaseModel):
     prompt: str
     aspect_ratio: str = "1:1"
     quality: str = "1K"
+    api_key: str | None = None
     images: list[GeneratedImageInput] = Field(default_factory=list)
 
 
@@ -236,6 +237,25 @@ class ImageGenerationResponse(BaseModel):
     prompt: str
     images: list[GeneratedImageOut]
     text: str | None = None
+
+
+# ── Audio generation ─────────────────────────────────────────────────────────
+
+
+class VoiceGenerationRequest(BaseModel):
+    text: str
+    voice_id: str
+    model_id: str = "eleven_v3"
+    language_code: str = "en"
+    api_key: str | None = None
+
+
+class VoiceGenerationResponse(BaseModel):
+    voice_id: str
+    model_id: str
+    language_code: str
+    mime_type: str = "audio/mpeg"
+    audio_base64: str
 
 
 

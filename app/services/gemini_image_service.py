@@ -39,9 +39,12 @@ async def generate_image(
     prompt: str,
     aspect_ratio: str,
     quality: str,
+    api_key: str | None,
     images: list[dict],
 ) -> dict:
-    if not settings.GEMINI_API_KEY:
+    effective_api_key = (api_key or "").strip() or settings.GEMINI_API_KEY
+
+    if not effective_api_key:
         raise GeminiImageGenerationError("GEMINI_API_KEY is not configured")
 
     model_name = GEMINI_MODEL_MAP.get(model_id)
@@ -72,7 +75,7 @@ async def generate_image(
     }
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
-    params = {"key": settings.GEMINI_API_KEY}
+    params = {"key": effective_api_key}
 
     async with httpx.AsyncClient(timeout=120.0) as client:
         response = await client.post(url, params=params, json=request_body)
