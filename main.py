@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
@@ -53,6 +53,9 @@ app = FastAPI(
     description="Skill-building educational platform with AI-powered quiz generation and prompt builder",
     version="1.0.0",
     lifespan=lifespan,
+    docs_url="/api/docs",
+    openapi_url="/api/openapi.json",
+    redoc_url="/api/redoc"
 )
 
 # CORS – allow all origins for local development
@@ -65,17 +68,23 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(auth_router)
-app.include_router(profile_router)
-app.include_router(courses_router)
-app.include_router(quizzes_router)
-app.include_router(prompts_router)
-app.include_router(image_generation_router)
-app.include_router(audio_generation_router)
-app.include_router(admin_router)
+api_router = APIRouter(prefix="/api")
+
+api_router.include_router(auth_router)
+api_router.include_router(profile_router)
+api_router.include_router(courses_router)
+api_router.include_router(quizzes_router)
+api_router.include_router(prompts_router)
+api_router.include_router(image_generation_router)
+api_router.include_router(audio_generation_router)
+api_router.include_router(admin_router)
+
+app.include_router(api_router)
 
 
-@app.get("/", tags=["/health"])
+@app.get("/", tags=["health"])
+@app.get("/api", tags=["health"])
+@app.get("/api/", tags=["health"])
 async def root():
     print("Number of cpu : ", multiprocessing.cpu_count())
-    return {"message": "the server is running", "docs": "/docs"}
+    return {"message": "the server is running", "docs": "/api/docs"}
